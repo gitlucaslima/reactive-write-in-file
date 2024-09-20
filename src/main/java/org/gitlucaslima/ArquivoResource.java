@@ -38,7 +38,7 @@ public class ArquivoResource {
 
         return lerArquivo(nomeArquivo)
                 .onItem().transformToUni(conteudo -> {
-                    if (!conteudo.contains("adoado")) {
+                    if (!conteudo.contains("primeiro")) {
                         return Uni.createFrom().item(Response.ok("Nome já existe no arquivo").build());
                     } else {
                         return abrirArquivoParaEscrita(nomeArquivo)
