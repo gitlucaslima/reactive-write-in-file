@@ -6,10 +6,13 @@ import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.core.buffer.Buffer;
 import io.vertx.mutiny.core.file.AsyncFile;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.gitlucaslima.dtos.NomeRecord;
 import org.jboss.logging.Logger;
 
 import java.nio.charset.StandardCharsets;
@@ -27,14 +30,17 @@ public class ArquivoResource {
     @ConfigProperty(name = "app.file.directory")
     String fileDirectory;
 
+    @Consumes("application/json")
+    @Produces("application/json")
     @POST
     @Path("/escrever")
-    public Uni<Response> escreverNoArquivo(String nome) {
+    public Uni<Response> escreverNoArquivo(NomeRecord body) {
+        LOG.info("Requisição para escrever no arquivo recebida."+ body);
         // Combina o caminho configurado com o nome do arquivo
         java.nio.file.Path caminhoRelativo = Paths.get(fileDirectory, "nomes.txt");
         String nomeArquivo = caminhoRelativo.toString();
 
-        LOG.infof("Tentando escrever o nome: %s no arquivo: %s", nome, nomeArquivo);
+        LOG.infof("Tentando escrever o nome: %s no arquivo: %s", body, nomeArquivo);
 
         return lerArquivo(nomeArquivo)
                 .onItem().transformToUni(conteudo -> {
@@ -42,8 +48,8 @@ public class ArquivoResource {
                         return Uni.createFrom().item(Response.ok("Nome já existe no arquivo").build());
                     } else {
                         return abrirArquivoParaEscrita(nomeArquivo)
-                                .onItem().transformToUni(arquivo -> escreverNoArquivo(arquivo, nome))
-                                .onItem().invoke(v -> LOG.infof("Nome '%s' escrito com sucesso no arquivo.", nome))
+                                .onItem().transformToUni(arquivo -> escreverNoArquivo(arquivo, body.nome()))
+                                .onItem().invoke(v -> LOG.infof("Nome '%s' escrito com sucesso no arquivo.",  body.nome()))
                                 .onItem().transform(arquivo -> Response.ok("Nome escrito com sucesso!").build())
                                 .onFailure().invoke(erro -> LOG.error("Erro ao escrever no arquivo: ", erro))
                                 .onFailure().recoverWithItem(erro -> Response.serverError().entity("Erro ao escrever no arquivo: " + erro.getMessage()).build());
@@ -53,6 +59,7 @@ public class ArquivoResource {
 
     // Método para abrir o arquivo e ler o conteúdo de forma assíncrona
     private Uni<String> lerArquivo(String caminhoArquivo) {
+
         return vertx.fileSystem().readFile(caminhoArquivo)
                 .onItem().transform(buffer -> buffer.toString(StandardCharsets.UTF_8))
                 .invoke(conteudo -> {

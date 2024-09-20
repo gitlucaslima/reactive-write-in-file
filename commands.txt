@@ -1,0 +1,12 @@
+#buildando projeto e gerando o .jar
+.\gradlew build
+
+#gerando img do proj
+#Dockerfile -> .jvm .legacy-jar .native .native-micro
+docker build -f src/main/docker/Dockerfile.jvm -t gitlucaslima/quarkus:reactive-demo .
+
+#confrimando nome imagem gerada docker
+docker image ls
+
+#subindo container - no terminal
+docker run -i --rm -p 8080:8080 gitlucaslima/quarkus:reactive-demo
